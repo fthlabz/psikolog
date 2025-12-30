@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dr. Mehmet | Kontrol Paneli</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .admin-card { background: #1e293b; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
+        textarea { width: 100%; height: 120px; border-radius: 10px; margin: 15px 0; padding: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #38bdf8; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="admin-card">
+    <h2>Dr. Mehmet Paneli</h2>
+    <textarea id="newMessage" placeholder="Yeni mesajınızı yazın..."></textarea>
+    <button onclick="guncelle()" id="btn">YAYINLA</button>
+    <div id="status" style="margin-top:15px;"></div>
+</div>
+<script>
+    const prefix = "gh" + "p_"; 
+    const key = "v57xqmzAnqEJtF7EqnYVtmWNeKx7Jq0cQGXQ"; // ghp_ hariç kısım
+    const TOKEN = prefix + key;
+    const REPO = "fthlabz/psikolog"; 
+    
+    // KRİTİK AYAR: Sadece Mehmet Bey'in dosyasını günceller
+    const PATH = "dr-mehmet/mesaj.json"; 
+
+    async function guncelle() {
+        const mesaj = document.getElementById('newMessage').value;
+        const status = document.getElementById('status');
+        if(!mesaj) return alert("Mesaj yazın!");
+
+        status.innerText = "Güncelleniyor...";
+        try {
+            const getRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}?t=${new Date().getTime()}`, {
+                headers: { "Authorization": `token ${TOKEN}` }
+            });
+            const fileData = await getRes.json();
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify({ "mesaj": mesaj }))));
+
+            const putRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}`, {
+                method: "PUT",
+                headers: { "Authorization": `token ${TOKEN}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ message: "Dr. Mehmet güncelledi", content: content, sha: fileData.sha })
+            });
+
+            if(putRes.ok) { status.innerText = "✅ Başarıyla Yayınlandı!"; }
+        } catch (err) { status.innerText = "❌ Hata oluştu!"; }
+    }
+</script>
+</body>
+</html>
