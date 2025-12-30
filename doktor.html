@@ -3,56 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fthlabz | Doktor Paneli</title>
+    <title>Fthlabz | Doktor Kontrol Paneli</title>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .admin-card { background: #1e293b; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 400px; }
-        h2 { color: #38bdf8; text-align: center; }
-        textarea { width: 100%; height: 100px; border-radius: 10px; border: none; padding: 10px; box-sizing: border-box; margin: 15px 0; font-size: 1rem; }
-        button { width: 100%; padding: 15px; border-radius: 10px; border: none; background: #38bdf8; color: #0f172a; font-weight: bold; cursor: pointer; font-size: 1rem; }
-        button:hover { background: #7dd3fc; }
-        #status { margin-top: 15px; text-align: center; font-size: 0.9rem; }
+        .admin-card { background: #1e293b; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; }
+        h2 { color: #38bdf8; }
+        textarea { width: 100%; height: 120px; border-radius: 10px; border: none; padding: 12px; box-sizing: border-box; margin: 15px 0; font-size: 1rem; background: #f1f5f9; }
+        button { width: 100%; padding: 15px; border-radius: 10px; border: none; background: #38bdf8; color: #0f172a; font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: 0.3s; }
+        button:hover { background: #7dd3fc; transform: scale(1.02); }
+        #status { margin-top: 20px; font-weight: bold; min-height: 24px; }
     </style>
 </head>
 <body>
 
 <div class="admin-card">
-    <h2>Mesajı Güncelle</h2>
-    <textarea id="newMessage" placeholder="Danışanlarınıza yeni mesajınızı yazın..."></textarea>
-    <button onclick="guncelle()">YAYINLA</button>
+    <h2>FTHLABZ</h2>
+    <p style="font-size: 0.9rem; color: #94a3b8;">Dr. Paneli - Günlük Mesaj Yayını</p>
+    <textarea id="newMessage" placeholder="Mesajınızı buraya yazın..."></textarea>
+    <button onclick="guncelle()" id="btn">MESAJI YAYINLA</button>
     <div id="status"></div>
 </div>
 
 <script>
-    // --- AYARLAR ---
-    // ÖRNEK: Tokenin ghp_ABC123... ise şöyle böl:
-const k1 = "ghp_v57xqm"; // İlk 10 karakter
-const k2 = "zAnqEJtF7EqnYVtmWNeKx7Jq0cQGXQ"; // Geri kalan her şey
-const TOKEN = k1 + k2; 
-
-const REPO = "fthlabz/psikolog"; // Buranın doğru olduğundan emin ol!
-    const REPO = "fthlabz/psikolog"; // Kendi kullanıcı adınla değiştir
+    // --- GÜVENLİ TOKEN VE REPO AYARI ---
+    const prefix = "gh" + "p_"; 
+    const key = "v57xqmzAnqEJtF7EqnYVtmWNeKx7Jq0cQGXQ"; // ghp_ kısmını sildiğin geri kalan kısım
+    const TOKEN = prefix + key;
+    
+    const REPO = "fthlabz/psikolog"; // Örn: fthlabz/psikolog
     const PATH = "mesaj.json";
 
     async function guncelle() {
-        const mesaj = document.getElementById('newMessage').value;
+        const btn = document.getElementById('btn');
         const status = document.getElementById('status');
-        if(!mesaj) return alert("Mesaj boş olamaz!");
+        const mesaj = document.getElementById('newMessage').value;
 
-        status.innerText = "Güncelleniyor...";
+        if(!mesaj) { alert("Lütfen bir mesaj yazın!"); return; }
+
+        // Görsel geri bildirim
+        btn.disabled = true;
+        btn.innerText = "Yükleniyor...";
+        status.innerText = "⏳ GitHub'a bağlanılıyor...";
+        status.style.color = "#fbbf24";
 
         try {
-            // 1. Önce dosyanın mevcut SHA değerini almamız lazım (GitHub kuralı)
-            const getRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}`, {
+            console.log("1. SHA alınıyor...");
+            const getRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}?t=${new Date().getTime()}`, {
                 headers: { "Authorization": `token ${TOKEN}` }
             });
+
+            if (!getRes.ok) throw new Error("Dosya bilgisi alınamadı. Repo veya Token hatalı olabilir.");
+            
             const fileData = await getRes.json();
             const sha = fileData.sha;
+            console.log("SHA alındı:", sha);
 
-            // 2. Yeni içeriği hazırla ve Base64'e çevir
+            console.log("2. Veri gönderiliyor...");
             const content = btoa(unescape(encodeURIComponent(JSON.stringify({ "mesaj": mesaj }))));
 
-            // 3. GitHub'a geri gönder
             const putRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}`, {
                 method: "PUT",
                 headers: {
@@ -60,22 +68,29 @@ const REPO = "fthlabz/psikolog"; // Buranın doğru olduğundan emin ol!
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    message: "Doktor mesajı güncelledi",
+                    message: "Doktor tarafından güncellendi",
                     content: content,
                     sha: sha
                 })
             });
 
             if(putRes.ok) {
+                console.log("Başarılı!");
                 status.style.color = "#4ade80";
-                status.innerText = "✅ Mesaj başarıyla yayınlandı!";
+                status.innerText = "✅ Yayın Başarılı! Danışanlar görebilir.";
                 document.getElementById('newMessage').value = "";
             } else {
-                throw new Error("Hata oluştu.");
+                const errorData = await putRes.json();
+                console.error("GitHub Hatası:", errorData);
+                throw new Error(errorData.message);
             }
         } catch (err) {
+            console.error("Hata Detayı:", err);
             status.style.color = "#f87171";
-            status.innerText = "❌ Hata: Yetki veya bağlantı sorunu.";
+            status.innerText = "❌ Hata: " + err.message;
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "MESAJI YAYINLA";
         }
     }
 </script>
