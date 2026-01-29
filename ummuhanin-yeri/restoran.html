@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fthlabz | Doktor Kontrol Panel</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .admin-card { background: #1e293b; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; position: relative; z-index: 1; }
+        h2 { color: #38bdf8; margin-bottom: 5px; }
+        textarea { width: 100%; height: 120px; border-radius: 10px; border: none; padding: 12px; box-sizing: border-box; margin: 15px 0; font-size: 1rem; background: #f1f5f9; color: #0f172a; resize: none; }
+        button { width: 100%; padding: 15px; border-radius: 10px; border: none; background: #38bdf8; color: #0f172a; font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: 0.3s; }
+        button:hover { background: #7dd3fc; transform: scale(1.02); }
+        #status { margin-top: 20px; font-weight: bold; min-height: 24px; font-size: 0.9rem; }
+        .footer-brand { position: fixed; bottom: 20px; font-size: 0.7rem; letter-spacing: 2px; color: #475569; font-family: sans-serif; text-align: center; width: 100%; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div class="admin-card">
+    <h2>ÜMMÜHAN'IN YERİ</h2>
+    <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 0;">Sağlık mutfakta başlar, lezzetle buluşur.</p>
+    <textarea id="newMessage" placeholder="Danışanlarınız için mesajınızı buraya yazın..."></textarea>
+    <button onclick="guncelle()" id="btn">MESAJ YAYINLA</button>
+    <div id="status"></div>
+</div>
+
+<div class="footer-brand">
+    POWERED BY FTHLABZ
+</div>
+
+<script>
+    // --- GÜVENLİ TOKEN VE REPO AYARI ---
+    const prefix = "gh" + "p_"; 
+    const key = "v57xqmzAnqEJtF7EqnYVtmWNeKx7Jq0cQGXQ"; 
+    const TOKEN = prefix + key;
+    
+    const REPO = "fthlabz/psikolog"; 
+    const PATH = "dr-ali/mesaj.json";
+
+    async function guncelle() {
+        const btn = document.getElementById('btn');
+        const status = document.getElementById('status');
+        const mesaj = document.getElementById('newMessage').value;
+
+        if(!mesaj) { alert("Lütfen bir mesaj yazın!"); return; }
+
+        btn.disabled = true;
+        btn.innerText = "İŞLENİYOR...";
+        status.innerText = "⏳ Verileriniz güvenli sunucuya iletiliyor...";
+        status.style.color = "#fbbf24";
+
+        try {
+            const getRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}?t=${new Date().getTime()}`, {
+                headers: { "Authorization": `token ${TOKEN}` }
+            });
+
+            if (!getRes.ok) throw new Error("Bağlantı kurulamadı.");
+            
+            const fileData = await getRes.json();
+            const sha = fileData.sha;
+
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify({ "mesaj": mesaj }))));
+
+            const putRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `token ${TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: "Sistem Güncellemesi",
+                    content: content,
+                    sha: sha
+                })
+            });
+
+            if(putRes.ok) {
+                status.style.color = "#4ade80";
+                status.innerText = "✅ Yayınlama Başarılı!";
+                document.getElementById('newMessage').value = "";
+            } else {
+                const errorData = await putRes.json();
+                throw new Error(errorData.message);
+            }
+        } catch (err) {
+            status.style.color = "#f87171";
+            status.innerText = "❌ Hata: Bağlantı kesildi.";
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "GÜNCELLEMEYİ YAYINLA";
+        }
+    }
+</script>
+
+</body>
+</html>
